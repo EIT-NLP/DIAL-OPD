@@ -1,7 +1,7 @@
-"""Install the exact validated TRL runtime without vendoring unrelated trainers.
+"""Install the pinned TRL runtime into the active virtual environment.
 
-The immutable first-release snapshot includes the PowerOPD fork plus its
-restored TRL model helpers. Installing stock TRL would change this runtime.
+The pinned snapshot combines the PowerOPD fork with TRL model helpers.
+Installing stock TRL would change this runtime.
 """
 import argparse
 import hashlib
@@ -50,7 +50,7 @@ def main():
                 path = target / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(content)
-    # This pure-Python runtime is imported directly, as in the validated release.
+    # Register this pure-Python runtime for direct imports.
     # A venv-local .pth avoids building wheels (and cross-directory renames on
     # confined hosts). It neither changes dependencies nor modifies base Python.
     registration = Path(sysconfig.get_path('purelib')) / 'dial_trl_runtime.pth'

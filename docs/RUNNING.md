@@ -2,19 +2,6 @@
 
 [← Back to the README](../README.md)
 
-## Validation scope
-
-This implementation keeps the recovered DIAL selector and signed OPD objective,
-with a focused trainer and a pinned external runtime. It has been tested on one
-NVIDIA H20 with a Qwen3-4B teacher and Qwen3-0.6B-Base student. Validation covers
-numerical equivalence with the original implementation, real rollouts, gradient
-updates, vLLM sleep/wake-up, math evaluation, and checkpoint save/reload.
-
-These are runtime validation tests, **not a rerun of the paper's experiments**.
-Multi-GPU training and all historical baselines are not included in the supported
-entry point. See [validation](VALIDATION.md) and
-[source provenance](PROVENANCE.md).
-
 ## Installation
 
 Use Linux, Python 3.10, and a CUDA driver compatible with PyTorch's CUDA 12.8
@@ -31,8 +18,8 @@ export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
 The installer places the pinned TRL runtime inside your active venv, outside
 this repository. It verifies the immutable source archive checksum. Do not
 replace it with pip's latest TRL.
-The tested stack uses PyTorch 2.10.0, vLLM 0.19.1, and Transformers 5.14.1.
-`requirements-lock.txt` records the complete validated environment.
+The pinned stack uses PyTorch 2.10.0, vLLM 0.19.1, and Transformers 5.14.1.
+`requirements-lock.txt` records the dependency versions.
 
 vLLM 0.19.1's NVML helper requires a small compatibility fix when
 `CUDA_VISIBLE_DEVICES` contains a GPU UUID. Apply it to this dedicated venv:
@@ -51,8 +38,8 @@ python scripts/download_assets.py
 ```
 
 This downloads the pinned Qwen3-0.6B-Base/Qwen3-4B model revisions and the
-conversation-form DeepScaleR training/MATH evaluation files used by the restored
-PowerOPD framework. The training file contains 40,313 examples; the evaluation
+conversation-form DeepScaleR training/MATH evaluation files from
+[PowerOPD](https://github.com/EIT-NLP/PowerOPD). The training file contains 40,313 examples; the evaluation
 file contains the 5,000-example MATH test set. The quick test uses only two
 evaluation examples. Dataset source hashes are verified during download.
 
@@ -63,13 +50,12 @@ Custom training JSONL should contain a `messages` list per example, for example:
 ```
 
 Teacher and student must share the same tokenizer vocabulary and token IDs.
-For the tested base student, the teacher's chat template is used with thinking
-disabled. Put any custom models, datasets, caches, and outputs in your own
-authorized workspace.
+For the Qwen3 base student, the teacher's chat template is used with thinking
+disabled.
 
 ## Run a small training test
 
-Choose **one free GPU** and run from the repository root:
+The provided launcher uses one GPU. Run from the repository root:
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0  # replace with your allocated GPU index or UUID
@@ -85,8 +71,8 @@ an existing result directory is rejected.
 
 `configs/train_qwen3_06b.json` is a longer-run starting configuration with
 batch size 32 and 1,024-token rollouts. Set the model/data paths, output directory,
-retention ratio, and selection exponent for your experiment. It is not a claim
-that launching this file reproduces every paper table.
+retention ratio, and selection exponent for your experiment. Its default evaluation
+uses the full MATH test file; use a MATH-500 subset to evaluate that benchmark.
 
 Key configuration fields:
 
@@ -105,7 +91,7 @@ The inherited GOLD `training.beta` is **not** DIAL's `score_beta`; the entry
 point fixes GOLD's objective parameters. Selection does not turn rewards into
 absolute values in the loss. The `0.01` low-low threshold is diagnostic only.
 
-## Validate
+## Tests
 
 ```bash
 python -m unittest discover -s tests -p 'test_*.py' -v
@@ -123,7 +109,7 @@ Qwen3 weight synchronization, saved weights, and checkpoint reload/generation.
 ## Confined environments
 
 If your environment uses Landlock ABI 1 and blocks global shared-memory files
-and cross-directory renames, the tested single-process adapters are:
+and cross-directory renames, use these single-process settings:
 
 ```bash
 export VLLM_ENABLE_V1_MULTIPROCESSING=0
@@ -143,9 +129,17 @@ dial_opd/          DIAL scoring/loss, student rollouts, evaluation, and runtime 
 configs/          Smoke and longer-run configurations
 tests/            Selector and actual-trainer numerical checks
 scripts/          Asset download, environment patch, artifact audit
-docs/             Provenance and validation scope
+docs/             Installation and usage guide
 ```
 
 The framework derives from [PowerOPD](https://github.com/EIT-NLP/PowerOPD) and
 [Hugging Face TRL](https://github.com/huggingface/trl). The separately installed TRL snapshot retains its
 Apache-2.0 license and file-level notices.
+
+## Runtime dependency
+
+The TRL dependency uses the PowerOPD fork at commit
+`65819e14a49c940fa7b2977f07872cabd6229129`, with model helpers from Hugging Face
+TRL v1.1.0 (`3179965b2d0621c1778f5a561302905837627b60`). The installer retrieves
+this combination from a fixed archive and checks its SHA-256 before installing.
+Upstream license files and notices are included in the installed dependency.

@@ -10,7 +10,6 @@
 <p align="center">
   <a href="https://arxiv.org/abs/2610.11659"><img src="https://img.shields.io/badge/arXiv-2610.11659-397eaa?style=flat-square" alt="Paper: arXiv 2610.11659"></a>
   <a href="https://github.com/EIT-NLP"><img src="https://img.shields.io/badge/EIT--NLP-Research-6b9fbf?style=flat-square" alt="EIT-NLP Research"></a>
-  <a href="docs/VALIDATION.md"><img src="https://img.shields.io/badge/Runtime-Single_GPU_validated-628c80?style=flat-square" alt="Runtime: single GPU validated"></a>
 </p>
 
 <p align="center">
@@ -76,7 +75,7 @@ The [paper](https://arxiv.org/abs/2610.11659) evaluates Qwen3 teachers (4B / 8B)
 
 ### 1. Set up the environment
 
-Tested on **Linux · Python 3.10 · one NVIDIA H20**, with PyTorch 2.10.0 (CUDA 12.8), vLLM 0.19.1, and Transformers 5.14.1.
+Use **Linux and Python 3.10**, with PyTorch 2.10.0 (CUDA 12.8), vLLM 0.19.1, and Transformers 5.14.1.
 
 ```bash
 git clone https://github.com/EIT-NLP/DIAL-OPD
@@ -98,21 +97,17 @@ python scripts/download_assets.py
 
 This prepares Qwen3-0.6B-Base, Qwen3-4B, DeepScaleR training data, and the MATH test set. See [data preparation](docs/RUNNING.md#prepare-models-and-data) for custom data and tokenizer requirements.
 
-### 3. Run a training test
+### 3. Train DIAL-OPD
+
+Set the model/data paths, `score_beta`, `keep_ratio`, and `output_dir` in [train_qwen3_06b.json](configs/train_qwen3_06b.json), then run:
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0  # choose your allocated GPU
 export VLLM_ENABLE_V1_MULTIPROCESSING=0
-python -m dial_opd.train --config configs/smoke_vllm.json
-```
-
-This runs **3 training steps**, evaluates before training and at step 2, and saves a final checkpoint. For an 800-step starting configuration, edit the paths, `score_beta`, and `keep_ratio` in [train_qwen3_06b.json](configs/train_qwen3_06b.json), then run:
-
-```bash
 python -m dial_opd.train --config configs/train_qwen3_06b.json
 ```
 
-Use a new `output_dir` for each run. The released entry point has passed numerical checks and short single-GPU training tests; these validate functionality, not reproduction of the paper's benchmark scores. See [validation evidence](docs/VALIDATION.md) and [implementation provenance](docs/PROVENANCE.md).
+The configuration trains for 800 steps and saves the final student checkpoint. Use a new `output_dir` for each run. For a three-step example, use [smoke_vllm.json](configs/smoke_vllm.json); see the [running guide](docs/RUNNING.md#run-a-small-training-test) for outputs and configuration details.
 
 ## What does DIAL-OPD select?
 
@@ -134,11 +129,7 @@ The examples below show DIAL-OPD filtering high-reward tokens with limited reaso
 
 ## Documentation
 
-| Guide | Contents |
-| :--- | :--- |
-| [Running DIAL-OPD](docs/RUNNING.md) | Installation, custom data, configurations, validation commands, troubleshooting |
-| [Validation](docs/VALIDATION.md) | Numerical equivalence, real rollouts, weight synchronization, checkpoint checks |
-| [Source provenance](docs/PROVENANCE.md) | Recovered algorithm, runtime sources, and added integration code |
+See the [running guide](docs/RUNNING.md) for installation, custom data, configuration options, tests, and troubleshooting.
 
 <details>
 <summary><strong>Repository structure</strong></summary>
@@ -146,9 +137,9 @@ The examples below show DIAL-OPD filtering high-reward tokens with limited reaso
 ```text
 dial_opd/    Token selection, signed OPD loss, rollouts, evaluation
 configs/     Smoke test and training configurations
-scripts/     Runtime installation, model/data download, validation tools
+scripts/     Runtime installation, model/data download, diagnostics
 tests/       Selector and trainer checks
-docs/        Usage, validation evidence, provenance
+docs/        Installation and usage guide
 assets/      README banner and paper figures
 ```
 

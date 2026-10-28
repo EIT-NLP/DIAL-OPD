@@ -53,7 +53,7 @@ def main():
     settings.setdefault('enable_thinking', False)
     args = DIALConfig(**settings)
     if args.world_size != 1:
-        raise ValueError('This release entry point is validated for a single GPU only')
+        raise ValueError('This training entry point requires a single GPU')
     if args.use_vllm and args.vllm_tensor_parallel_size != 1:
         raise ValueError('This release entry point requires vLLM tensor parallel size 1')
     set_seed(args.seed)
