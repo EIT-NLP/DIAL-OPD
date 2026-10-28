@@ -4,9 +4,8 @@ import json
 import math
 from types import SimpleNamespace
 import torch
-from dial_opd.trainer import ScoreFamilySelectionTrainer
-from opd_dynamics.trainer import OPDDynamicsTrainer
-from factorized_gold.math_eval_utils import MathVerifier
+from dial_opd.trainer import DIALTrainer
+from dial_opd.math_eval_utils import MathVerifier
 BETAS=(0., .25, .5, .75, 1., 1.2, 1.5, 2.)
 
 class TinyWindowModel(torch.nn.Module):
@@ -39,22 +38,14 @@ def fixture():
     return (batches, [student[:2], student[2:]], [teacher[:2], teacher[2:]])
 
 def audit_actual_window():
-    assert ScoreFamilySelectionTrainer._compute_loss_from_window_cache is OPDDynamicsTrainer._compute_loss_from_window_cache
     (batches, students, teachers) = fixture()
     expected_effective = [[[True, True, False, False, False], [True] * 5], [[True, True, False, False, False], [False] * 5]]
     previous_rewards = None
     for beta in BETAS:
-        obj = ScoreFamilySelectionTrainer.__new__(ScoreFamilySelectionTrainer)
+        obj = DIALTrainer.__new__(DIALTrainer)
         obj.args = SimpleNamespace(gradient_accumulation_steps=32, beta=1)
         obj.state = SimpleNamespace(global_step=0)
         obj.processing_class = SimpleNamespace(convert_tokens_to_ids=lambda token: {'<|endoftext|>': 7, '<|im_end|>': 8}.get(token))
-        obj.terminal_stop_target = 'mask'
-        obj.reward_mode = 'sampled_log_ratio'
-        (obj.log_reward_clip_min, obj.log_reward_clip_max) = (-5.0, 5.0)
-        (obj.log_reward_tanh_temperature, obj.power_reward_alpha) = (1.0, 0.1)
-        (obj.token_loss_normalization, obj.reward_normalization) = ('window_token_mean', 'none')
-        obj.reward_position_tracker = SimpleNamespace(enabled=False)
-        obj._maybe_dump_prefill_debug = lambda *a, **kw: None
         obj._record_train_scalar = lambda *a, **kw: None
         obj.selection_config = {'keep_ratio': 0.2, 'probability_threshold': 0.01}
         (obj.selection_run_id, obj.score_beta) = ('cpu_independent_preflight', beta)
@@ -109,7 +100,7 @@ def audit_actual_window():
         assert all(('loss_skipped' not in row for row in records))
         metrics = json.loads(obj.metrics_stream.getvalue())
         assert metrics['responses'] == 4 and metrics['selected'] == 3
-    return {'status': 'passed', 'betas': list(BETAS), 'checks': ['real_precompute_components_selector_cached_loss_chain', 'unequal_microbatch_selected_counts_share_window_denominator', 'signed_reward_invariant_across_score_betas', 'positive_and_negative_reward_closed_form_gradients', 'teacher_and_reward_stop_gradient', 'prompt_padding_unselected_and_both_terminal_EOS_targets_have_zero_direct_loss', 'nonempty_low_low_only_response_keeps_original_quota', 'EOS_only_response_recorded_with_zero_targets', 'OPD_beta_remains_1_and_base_cached_loss_is_inherited']}
+    return {'status': 'passed', 'betas': list(BETAS), 'checks': ['real_precompute_components_selector_cached_loss_chain', 'unequal_microbatch_selected_counts_share_window_denominator', 'signed_reward_invariant_across_score_betas', 'positive_and_negative_reward_closed_form_gradients', 'teacher_and_reward_stop_gradient', 'prompt_padding_unselected_and_both_terminal_EOS_targets_have_zero_direct_loss', 'nonempty_low_low_only_response_keeps_original_quota', 'EOS_only_response_recorded_with_zero_targets', 'OPD_beta_remains_1']}
 
 if __name__ == '__main__':
     report=audit_actual_window()

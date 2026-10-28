@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "betas": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.2,
+    1.5,
+    2.0
+  ],
+  "checks": [
+    "real_precompute_components_selector_cached_loss_chain",
+    "unequal_microbatch_selected_counts_share_window_denominator",
+    "signed_reward_invariant_across_score_betas",
+    "positive_and_negative_reward_closed_form_gradients",
+    "teacher_and_reward_stop_gradient",
+    "prompt_padding_unselected_and_both_terminal_EOS_targets_have_zero_direct_loss",
+    "nonempty_low_low_only_response_keeps_original_quota",
+    "EOS_only_response_recorded_with_zero_targets",
+    "OPD_beta_remains_1"
+  ],
+  "math_verifier_worker": true
+}

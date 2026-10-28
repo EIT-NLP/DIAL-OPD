@@ -1,162 +1,178 @@
-# DIAL-OPD
+<p align="center">
+  <img src="assets/banner.svg" width="100%" alt="DIAL-OPD: Learning More from Fewer Tokens in On-Policy Distillation">
+</p>
 
-Probability-aware token selection for sampled-token on-policy distillation.
-DIAL-OPD combines teacher–student disagreement with its probability scale:
+<p align="center">
+  Anhao Zhao · Haoran Xin · Junlong Tong · Yingqi Fan<br>
+  Xuan Lu · Ping Nie · Wenjie Li · Xiaoyu Shen
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2610.11659"><img src="https://img.shields.io/badge/arXiv-2610.11659-397eaa?style=flat-square" alt="Paper: arXiv 2610.11659"></a>
+  <a href="https://github.com/EIT-NLP"><img src="https://img.shields.io/badge/EIT--NLP-Research-6b9fbf?style=flat-square" alt="EIT-NLP Research"></a>
+  <a href="docs/VALIDATION.md"><img src="https://img.shields.io/badge/Runtime-Single_GPU_validated-628c80?style=flat-square" alt="Runtime: single GPU validated"></a>
+</p>
+
+<p align="center">
+  <a href="#overview">Overview</a> ·
+  <a href="#results">Results</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#what-does-dial-opd-select">Token selection</a> ·
+  <a href="#citation">Citation</a>
+</p>
+
+## Overview
+
+**More supervision does not necessarily improve OPD.** Even random token selection can outperform full-token training. DIAL-OPD selects tokens using both teacher–student disagreement and the probability scale at which it occurs, reducing the priority of tokens that both models consider unlikely.
+
+<table align="center">
+<tr>
+<th align="center">Less supervision</th>
+<th align="center">Stronger reasoning</th>
+<th align="center">Better token selection</th>
+</tr>
+<tr>
+<td align="center"><strong>40% tokens · +5.25 pp</strong><br><sub>Mean accuracy over Vanilla OPD</sub></td>
+<td align="center"><strong>2× AIME25 Pass@16</strong><br><sub>13.33% → 26.67%</sub></td>
+<td align="center"><strong>Up to 18% relative gain</strong><br><sub>Mean accuracy over the strongest selection baseline</sub></td>
+</tr>
+</table>
+
+<p align="center"><sub>Paper results across 4 teacher–student pairs, 7 math benchmarks, and 9 baselines. Highlights use different settings; comparisons are detailed below.</sub></p>
+
+### A dial between relative and absolute disagreement
+
+A large log-ratio reward can arise even when **both teacher and student assign negligible probability** to a token. These *low-low tokens* can dominate the reward magnitude of the selected subset and hinder learning. DIAL-OPD combines reward magnitude with the **logarithmic mean** of the two probabilities:
 
 $$
-s_{\beta,t}=L(p_t,q_t)^\beta\left|\log(q_t/p_t)\right|,
-\qquad L(p,q)=\frac{q-p}{\log q-\log p}.
+s_{\beta,t}=L(p_t,q_t)^\beta\left|\log\frac{q_t}{p_t}\right|,
+\qquad
+L(p,q)=\begin{cases}\dfrac{q-p}{\log q-\log p},&p\ne q,\\p,&p=q.\end{cases}
 $$
 
-Within each response, the highest-scoring fraction of valid tokens contributes
-to the original **signed** OPD loss. All response tokens remain in context.
-`beta=0` selects by reward magnitude; `beta=1` selects by the absolute probability
-gap. The implementation computes scores in log space for numerical stability.
+Here, $p_t$ and $q_t$ are the student and teacher probabilities of the sampled token. Within each response, the highest-scoring tokens are retained for training.
 
-## Status
+| Parameter | What it controls |
+| :--- | :--- |
+| `keep_ratio` ($\rho$) | How many response tokens contribute to the loss |
+| `score_beta` ($\beta$) | How strongly probability scale influences selection |
 
-This release restores the original DIAL selector and training logic and supplies
-a new portable entry point. It has been tested on one NVIDIA H20 with a
-Qwen3-4B teacher and Qwen3-0.6B-Base student. Tests include real rollouts,
-teacher scoring, gradient updates, vLLM sleep/wake-up, periodic math evaluation,
-weight synchronization, and save/reload. A 32-response batch with a 1,024-token
-completion limit passes two optimizer updates.
+At $\beta=0$, selection uses reward magnitude alone. At $\beta=1$, it uses the absolute probability gap $|q_t-p_t|$. Larger values increase probability weighting. **The original signed OPD reward is preserved**; selection changes which positions contribute to training, while every generated token remains in context.
 
-These are runtime validation tests, **not a rerun of the paper's experiments**.
-Multi-GPU training and all historical baselines are not included in the supported
-entry point. See [validation](docs/VALIDATION.md) and
-[source provenance](docs/PROVENANCE.md).
+## Results
 
-## Installation
+The [paper](https://arxiv.org/abs/2610.11659) evaluates Qwen3 teachers (4B / 8B) and students (0.6B / 1.7B). Below are selected results; **pp** denotes percentage points. Model pairs are written as teacher → student.
 
-Use Linux, Python 3.10, and a CUDA driver compatible with PyTorch's CUDA 12.8
-build. Create a dedicated environment in your own workspace:
+| Comparison | Setting | Result |
+| :--- | :--- | :--- |
+| **vs. full-token Vanilla OPD** | 4B → 0.6B · retain 40% · $\beta=1$ | **+5.25 pp** mean accuracy |
+| **vs. the strongest full-token variant** | 4B → 1.7B · retain 40% · $\beta=1$ | **+1.24 pp** mean accuracy over PowerOPD |
+| **vs. full-token Vanilla OPD on AIME25** | 8B → 1.7B · retain 40% · $\beta=1.2$ | **13.33% → 26.67%** Pass@16 |
+| **vs. the strongest token-selection baseline** | 4B → 1.7B · retain 20% · $\beta=1$ | **+5.23 pp** mean accuracy over CC-OPD |
+
+*Effective supervision allocation can outweigh teacher scaling.* With 40% retention and $\beta=1$, a 4B teacher exceeds the strongest full-token reference using an 8B teacher by **0.95 pp** and **1.76 pp** in mean accuracy for the 0.6B and 1.7B students, respectively.
+
+## Quick start
+
+### 1. Set up the environment
+
+Tested on **Linux · Python 3.10 · one NVIDIA H20**, with PyTorch 2.10.0 (CUDA 12.8), vLLM 0.19.1, and Transformers 5.14.1.
 
 ```bash
+git clone https://github.com/EIT-NLP/DIAL-OPD
+cd DIAL-OPD
 python3.10 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-gpu.txt
-export PYTHONPATH="$PWD:$PWD/trl${PYTHONPATH:+:$PYTHONPATH}"
+python scripts/install_trl.py
+export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
 ```
 
-The vendored TRL framework is pinned; do not replace it with pip's latest TRL.
-The tested stack uses PyTorch 2.10.0, vLLM 0.19.1, and Transformers 5.14.1.
-`requirements-lock.txt` records the complete validated environment.
+The TRL installer verifies a pinned source archive and installs it inside your active venv. See the [running guide](docs/RUNNING.md#installation) for GPU UUID compatibility and environment details.
 
-vLLM 0.19.1's NVML helper requires a small compatibility fix when
-`CUDA_VISIBLE_DEVICES` contains a GPU UUID. Apply it to this dedicated venv:
-
-```bash
-python scripts/patch_vllm_uuid.py
-```
-
-The script refuses to patch a non-venv installation or a different vLLM version.
-It records the before/after hashes in `recovery/vllm_uuid_patch.json`.
-
-## Prepare models and data
+### 2. Download models and data
 
 ```bash
 python scripts/download_assets.py
 ```
 
-This downloads the pinned Qwen3-0.6B-Base/Qwen3-4B model revisions and the
-conversation-form DeepScaleR training/MATH evaluation files used by the restored
-PowerOPD framework. The training file contains 40,313 examples; the evaluation
-file contains the 5,000-example MATH test set. The quick test uses only two
-evaluation examples. Dataset source hashes are verified during download.
+This prepares Qwen3-0.6B-Base, Qwen3-4B, DeepScaleR training data, and the MATH test set. See [data preparation](docs/RUNNING.md#prepare-models-and-data) for custom data and tokenizer requirements.
 
-Custom training JSONL should contain a `messages` list per example, for example:
-
-```json
-{"messages": [{"role": "user", "content": "What is 2 + 2?"}], "answer": "4"}
-```
-
-Teacher and student must share the same tokenizer vocabulary and token IDs.
-For the tested base student, the teacher's chat template is used with thinking
-disabled. Put any custom models, datasets, caches, and outputs in your own
-authorized workspace.
-
-## Run a small training test
-
-Choose **one free GPU** and run from the repository root:
+### 3. Run a training test
 
 ```bash
-export CUDA_VISIBLE_DEVICES=0  # replace with your allocated GPU index or UUID
+export CUDA_VISIBLE_DEVICES=0  # choose your allocated GPU
 export VLLM_ENABLE_V1_MULTIPROCESSING=0
 python -m dial_opd.train --config configs/smoke_vllm.json
 ```
 
-The smoke config uses vLLM with sleep enabled and runs three optimizer updates.
-It evaluates before training and at step 2. Results include `trainer_state.json`,
-`selection_metrics.jsonl`, `rollouts.jsonl.gz`, evaluation details, and a loadable
-checkpoint under `final/`. Use a **new `output_dir`** for each run; overwriting
-an existing result directory is rejected.
-
-`configs/train_qwen3_06b.json` is a longer-run starting configuration with
-batch size 32 and 1,024-token rollouts. Set the model/data paths, output directory,
-retention ratio, and selection exponent for your experiment. It is not a claim
-that launching this file reproduces every paper table.
-
-Key configuration fields:
-
-| Field | Meaning |
-|---|---|
-| `score_beta` | DIAL probability-weighting exponent |
-| `keep_ratio` | Fraction of valid response tokens retained per response |
-| `training.max_steps` | Number of optimizer updates |
-| `training.generation_batch_size` | Responses generated for a rollout batch |
-| `training.gradient_accumulation_steps` | Microbatches per optimizer update |
-| `training.vllm_enable_sleep_mode` | Release vLLM memory between rollout and training |
-| `log_rollouts` | Save token IDs, log probabilities, and selected positions |
-| `save_final` | Save the final student model and tokenizer |
-
-The inherited GOLD `training.beta` is **not** DIAL's `score_beta`; the entry
-point fixes GOLD's objective parameters. Selection does not turn rewards into
-absolute values in the loss. The `0.01` low-low threshold is diagnostic only.
-
-## Validate
+This runs **3 training steps**, evaluates before training and at step 2, and saves a final checkpoint. For an 800-step starting configuration, edit the paths, `score_beta`, and `keep_ratio` in [train_qwen3_06b.json](configs/train_qwen3_06b.json), then run:
 
 ```bash
-python -m unittest discover -s tests -p 'test_selection.py' -v
-CUDA_VISIBLE_DEVICES='' python tests/verify_integration.py
-python scripts/audit_smoke.py outputs/smoke-vllm --report outputs/smoke-audit.json
+python -m dial_opd.train --config configs/train_qwen3_06b.json
 ```
 
-The integration test imports the actual restored trainers and checks signed
-gradients, stop-gradient behavior, response masks, and normalization across
-unequal microbatches. The artifact audit recomputes token rankings independently
-using 70-digit arithmetic. The optional `verify_runtime` config flag checks
-Qwen3 weight synchronization, saved weights, and checkpoint reload/generation.
+Use a new `output_dir` for each run. The released entry point has passed numerical checks and short single-GPU training tests; these validate functionality, not reproduction of the paper's benchmark scores. See [validation evidence](docs/VALIDATION.md) and [implementation provenance](docs/PROVENANCE.md).
 
-## Confined environments
+## What does DIAL-OPD select?
 
-If your environment uses Landlock ABI 1 and blocks global shared-memory files
-and cross-directory renames, the tested single-process adapters are:
+### Probability scale changes which disagreements matter
 
-```bash
-export VLLM_ENABLE_V1_MULTIPROCESSING=0
-export DIAL_CONFINED_SINGLE_PROCESS=1
-export TRITON_CACHE_MANAGER=dial_opd.confined_cache:SameDirectoryCacheManager
-```
+On the same 128 DeepScaleR responses at 20% retention, increasing $\beta$ from 0 to 1 reduces the low-low share among selected tokens from **8.26% to 0.29%**. At $\beta=2$, the share falls further to 0.02%, but selection also suppresses tokens supported by only one model. Together with the training results, this suggests a balance between suppressing low-low tokens and preserving useful supervision.
 
-They keep a single-process executor lock local and publish compiled cache files
-atomically within one directory. They do not disable filesystem confinement or
-enable access to other GPUs. These options are unnecessary on ordinary
-unconfined installations and are not intended for multiprocessing engines.
+<p align="center">
+  <img src="assets/selection-map.png" width="100%" alt="Four probability-space hexbin plots show how token selection changes at beta 0, 0.5, 1, and 2.">
+</p>
 
-## Code layout
+### Large rewards need not identify useful reasoning supervision
+
+The examples below show DIAL-OPD filtering high-reward tokens with limited reasoning value while retaining signals that encourage correct reasoning or correct errors. Blue and pink mark retained tokens with positive and negative rewards; the left panel zooms into the low-low region.
+
+<p align="center">
+  <img src="assets/token-examples.png" width="100%" alt="Contextual token examples in teacher–student probability space: filtered low-low tokens on the left, retained encouragement and correction signals on the right.">
+</p>
+
+## Documentation
+
+| Guide | Contents |
+| :--- | :--- |
+| [Running DIAL-OPD](docs/RUNNING.md) | Installation, custom data, configurations, validation commands, troubleshooting |
+| [Validation](docs/VALIDATION.md) | Numerical equivalence, real rollouts, weight synchronization, checkpoint checks |
+| [Source provenance](docs/PROVENANCE.md) | Recovered algorithm, runtime sources, and added integration code |
+
+<details>
+<summary><strong>Repository structure</strong></summary>
 
 ```text
-dial_opd/          DIAL selector, recovered trainer, new launcher/adapters
-factorized_gold/   Shared rollout, scoring, and evaluation framework
-opd_dynamics/      Sampled-token reward/loss and terminal-token handling
-trl/              Pinned TRL runtime source and upstream license
-configs/          Smoke and longer-run configurations
-tests/            Selector and actual-trainer numerical checks
-scripts/          Asset download, environment patch, artifact audit
-docs/             Provenance and validation scope
+dial_opd/    Token selection, signed OPD loss, rollouts, evaluation
+configs/     Smoke test and training configurations
+scripts/     Runtime installation, model/data download, validation tools
+tests/       Selector and trainer checks
+docs/        Usage, validation evidence, provenance
+assets/      README banner and paper figures
 ```
 
-The framework derives from [PowerOPD](https://github.com/EIT-NLP/PowerOPD) and
-[Hugging Face TRL](https://github.com/huggingface/trl). Vendored TRL retains its
-Apache-2.0 license and file-level notices.
+The training framework builds on [PowerOPD](https://github.com/EIT-NLP/PowerOPD) and [Hugging Face TRL](https://github.com/huggingface/trl). The pinned TRL runtime retains its Apache-2.0 license and file-level notices.
+
+</details>
+
+## Citation
+
+If you find this work useful, please cite:
+
+```bibtex
+@misc{zhao2026dialopd,
+  title={DIAL-OPD: Learning More from Fewer Tokens in On-Policy Distillation},
+  author={Anhao Zhao and Haoran Xin and Junlong Tong and Yingqi Fan and
+          Xuan Lu and Ping Nie and Wenjie Li and Xiaoyu Shen},
+  year={2026},
+  eprint={2610.11659},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2610.11659}
+}
+```
+
+## Contact
+
+Questions and feedback are welcome through [GitHub Issues](https://github.com/EIT-NLP/DIAL-OPD/issues), or contact [Anhao Zhao](mailto:anhao.zhao@connect.polyu.hk) and [Xiaoyu Shen](mailto:xyshen@eitech.edu.cn).

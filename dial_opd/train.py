@@ -1,8 +1,4 @@
-"""New portable launcher around the recovered DIAL/GOLD training classes.
-
-The selector, reward, loss, and accumulation logic are recovered code. This
-launcher replaces historical machine-specific queue/config orchestration.
-"""
+"""Train DIAL-OPD with student rollouts and per-response token selection."""
 from __future__ import annotations
 
 import argparse
@@ -20,8 +16,8 @@ from .compat import enable_vllm_gpu_uuid_support, configure_confined_single_proc
 enable_vllm_gpu_uuid_support()
 configure_confined_single_process_vllm()
 
-from opd_dynamics.config import OPDDynamicsConfig
-from .trainer import ScoreFamilySelectionTrainer
+from .config import DIALConfig
+from .trainer import DIALTrainer
 
 
 def main():
@@ -44,9 +40,8 @@ def main():
     if any(output.iterdir()):
         raise ValueError(f'Refusing to overwrite nonempty output directory: {output}')
     settings = dict(cfg['training'])
-    invariants = dict(trajectory_source='student', reward_mode='sampled_log_ratio',
-                      token_loss_normalization='window_token_mean', reward_normalization='none',
-                      terminal_stop_target='mask', beta=1., lmbda=1., num_generations=1)
+    invariants = dict(beta=1., lmbda=1., num_generations=1,
+                      use_uld_loss=False, seq_kd=False, use_liger_kernel=False)
     for key, value in invariants.items():
         if key in settings and settings[key] != value:
             raise ValueError(f'DIAL requires {key}={value}; score_beta is the selection exponent')
@@ -56,7 +51,7 @@ def main():
     settings.setdefault('teacher_model_init_kwargs', {'torch_dtype': 'bfloat16', 'attn_implementation': 'sdpa'})
     settings.setdefault('report_to', 'none')
     settings.setdefault('enable_thinking', False)
-    args = OPDDynamicsConfig(**settings)
+    args = DIALConfig(**settings)
     if args.world_size != 1:
         raise ValueError('This release entry point is validated for a single GPU only')
     if args.use_vllm and args.vllm_tensor_parallel_size != 1:
@@ -82,14 +77,12 @@ def main():
     dataset = dataset.map(lambda _: {'chat_template_kwargs': {'enable_thinking': args.enable_thinking}})
     (output/'launch_config.json').write_text(json.dumps(cfg, indent=2)+'\n')
     with ExitStack() as stack:
-        if cfg.get('log_rollouts', True):
+        if cfg.get('log_rollouts', False):
             raw = stack.enter_context(gzip.open(output/'rollouts.jsonl.gz', 'wt'))
         else:
-            # A sink with the same write/flush protocol avoids holding rollouts in RAM.
-            import os
-            raw = stack.enter_context(open(os.devnull, 'w'))
+            raw = None
         metrics = stack.enter_context((output/'selection_metrics.jsonl').open('w'))
-        trainer = ScoreFamilySelectionTrainer(
+        trainer = DIALTrainer(
             model=cfg['student'], teacher_model=cfg['teacher'], args=args,
             train_dataset=dataset, processing_class=tokenizer,
             selection_config={'keep_ratio': ratio, 'probability_threshold': .01},

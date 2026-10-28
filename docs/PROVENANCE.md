@@ -1,24 +1,30 @@
 # Source provenance
 
-- `dial_opd/selection.py`: byte-identical recovered DIAL selector.
-- `dial_opd/trainer.py`: original ScoreFamilySelectionTrainer class, with import glue adapted.
-- `opd_dynamics/trainer.py` and `factorized_gold/trainer.py`: unchanged recovered classes.
-- Shared framework/TRL: EIT-NLP/PowerOPD commit
-  `65819e14a49c940fa7b2977f07872cabd6229129`.
-- Missing `trl/trl/models/*.py`: Hugging Face TRL v1.1.0 commit
-  `3179965b2d0621c1778f5a561302905837627b60`.
-- `factorized_gold/math_eval_utils.py`: complete PowerOPD helper plus the
-  recovered process-isolated MathVerifier; IPC uses pipes for confined hosts.
-- Evaluation callback changes: wake KV cache after weight sync for vLLM 0.19;
-  preserve pending train logs and avoid consuming training metric buffers.
-- New: training entry point, environment/cache adapters, download scripts,
-  optional runtime verification, and release documentation/configurations.
+- `dial_opd/selection.py` is byte-identical to the recovered DIAL selector and
+  the first public release (`881d86f06ca908bf9deedfecbd29bea8c4fe650c`).
+- `dial_opd/trainer.py` consolidates the recovered selection and sampled-token
+  loss classes. It removes alternative objectives and fixes the signed log-ratio
+  reward, terminal-EOS masking, and window-wide selected-token normalization.
+- `dial_opd/rollout.py` derives from the recovered FactorizedGOLD trainer, retaining
+  student rollouts and evaluation integration. Teacher/dataset rollout branches
+  were removed. Evaluation helpers and stop-token handling moved into `dial_opd/`.
+- Configuration, launcher, environment adapters and verification utilities are
+  maintained code; they are not presented as unmodified historical files.
 
-The selection/loss algorithm was not rewritten to fit the new environment.
-Historical machine-specific launchers, recovered private history, model weights,
-and experiment trajectories are excluded from this export.
+## Pinned runtime dependency
 
-TRL files retain their upstream headers and Apache-2.0 license in `trl/LICENSE`.
+The runtime derives from EIT-NLP/PowerOPD commit
+`65819e14a49c940fa7b2977f07872cabd6229129`. Its missing TRL model helpers came from
+Hugging Face TRL v1.1.0 commit `3179965b2d0621c1778f5a561302905837627b60`.
+The complete validated combination is archived in the immutable first public
+DIAL-OPD release. `scripts/install_trl.py` extracts only its `trl/` directory,
+verifies the archive SHA-256, and registers that source using a `.pth` file in
+the active virtual environment. It does not install stock/newer TRL, change
+other dependencies, or write into base Python. Runtime licenses and upstream
+headers remain intact in the installed dependency.
 
-The public dependency lock records `pwinput==1.0.3` by version instead of the
-local wheel path used during installation. No local wheel URL is required.
+Other TRL trainers remain part of that third-party dependency, not part of the
+DIAL algorithm or the source tree users navigate in this repository.
+
+Original recovery archives and the complete pre-cleanup checkout are preserved
+outside this working tree. See [cleanup](CLEANUP.md) and [validation](VALIDATION.md).

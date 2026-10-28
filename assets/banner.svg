@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="290" viewBox="0 0 1200 290" role="img" aria-labelledby="title desc">
+  <title id="title">DIAL-OPD: Learning More from Fewer Tokens in On-Policy Distillation</title>
+  <desc id="desc">A light blue research banner with a dial representing tunable probability weighting.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#f1f9fe"/><stop offset="1" stop-color="#e2f1fb"/></linearGradient>
+    <linearGradient id="arc"><stop stop-color="#a795c5"/><stop offset=".5" stop-color="#72b3d8"/><stop offset="1" stop-color="#2879af"/></linearGradient>
+  </defs>
+  <rect width="1200" height="290" rx="18" fill="url(#background)"/>
+  <path d="M0 288H1200" stroke="#b9d9ed" stroke-width="4"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Arial, sans-serif">
+    <text x="48" y="45" fill="#5484a3" font-size="13" font-weight="650" letter-spacing="2.8">EIT-NLP · ON-POLICY DISTILLATION</text>
+    <text x="45" y="125" fill="#174f77" font-size="70" font-weight="750" letter-spacing="-2.6">DIAL-OPD</text>
+    <text x="48" y="174" fill="#264f6d" font-size="29" font-weight="600">Learning More from Fewer Tokens</text>
+    <text x="48" y="211" fill="#476c86" font-size="23">in On-Policy Distillation</text>
+    <text x="48" y="260" fill="#5c7c92" font-size="15">Teacher–student disagreement, with probability scale in view.</text>
+  </g>
+  <g transform="translate(977 163)">
+    <circle r="107" fill="#ffffff" fill-opacity=".6" stroke="#d0e5f2"/>
+    <circle r="94" fill="none" stroke="#dae9f2" stroke-width="2" stroke-dasharray="1 9"/>
+    <path d="M-70 40A81 81 0 1 1 70 40" fill="none" stroke="url(#arc)" stroke-width="14" stroke-linecap="round"/>
+    <g stroke="#688ba5" stroke-width="2"><path d="M-78 45l-8 4M-90 0h-9M-78-45l-8-4M-45-78l-4-8M0-90v-9M45-78l4-8M78-45l8-4M90 0h9M78 45l8 4"/></g>
+    <path d="M0 0L43-53" stroke="#246c9b" stroke-width="7" stroke-linecap="round"/>
+    <circle r="12" fill="#246c9b"/><circle r="4" fill="#f4fbff"/>
+    <text x="0" y="51" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="35" fill="#32658a">β</text>
+    <text x="0" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" letter-spacing="1" fill="#688ba5">PROBABILITY WEIGHTING</text>
+  </g>
+</svg>

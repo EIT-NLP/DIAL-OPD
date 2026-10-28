@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "optimizer_steps": 2,
+  "responses": 4,
+  "log_rollouts": false,
+  "result": {
+    "train_runtime": 14.7017,
+    "train_samples_per_second": 0.272,
+    "train_steps_per_second": 0.136,
+    "total_flos": 21396147142656.0,
+    "train_loss": -0.8347807228565216
+  },
+  "metrics": [
+    {
+      "run_id": "validated-hf",
+      "step_before_update": 0,
+      "responses": 2,
+      "score_beta": 1.2,
+      "valid": 256,
+      "selected": 102,
+      "low_low_valid": 3,
+      "low_low_selected": 0,
+      "r_abs_total": 242.23052366283576,
+      "r_abs_low_total": 91.32255220413208,
+      "r_abs_selected": 128.06418891411863,
+      "r_abs_low_selected": 0.0,
+      "skipped_responses": 0,
+      "skipped_valid_tokens": 0,
+      "skipped_quota": 0
+    },
+    {
+      "run_id": "validated-hf",
+      "step_before_update": 1,
+      "responses": 2,
+      "score_beta": 1.2,
+      "valid": 256,
+      "selected": 102,
+      "low_low_valid": 0,
+      "low_low_selected": 0,
+      "r_abs_total": 416.0407755777178,
+      "r_abs_low_total": 0.0,
+      "r_abs_selected": 288.3915813856747,
+      "r_abs_low_selected": 0.0,
+      "skipped_responses": 0,
+      "skipped_valid_tokens": 0,
+      "skipped_quota": 0
+    }
+  ]
+}

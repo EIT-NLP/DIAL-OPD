@@ -1,5 +1,5 @@
 # Validated Linux / Python 3.10 / CUDA 12.8 runtime.
-# TRL comes from the pinned vendored source; do not pip-install a different TRL.
+# Install the pinned TRL runtime with scripts/install_trl.py after these dependencies.
 torch==2.10.0
 vllm==0.19.1
 transformers==5.14.1

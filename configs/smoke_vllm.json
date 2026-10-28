@@ -45,5 +45,6 @@
     "eval_temperature": 0.6,
     "eval_n": 1,
     "eval_k": 1
-  }
+  },
+  "log_rollouts": true
 }
