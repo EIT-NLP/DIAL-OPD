@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+/models/
+/data/
+/outputs/
+/recovery/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.pem
+*.key

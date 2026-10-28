@@ -1,0 +1,8 @@
+{
+  "vllm_synced_parameter_elements": 596049920,
+  "vllm_sync_exact_at_engine_dtype": true,
+  "saved_parameter_elements_checked": 596049920,
+  "reloaded_generation_token_count": 8,
+  "reloaded_generation_text": " \u2687 \u2687 \ufffd",
+  "status": "passed"
+}

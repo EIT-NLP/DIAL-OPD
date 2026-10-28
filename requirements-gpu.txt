@@ -1,0 +1,13 @@
+# Validated Linux / Python 3.10 / CUDA 12.8 runtime.
+# TRL comes from the pinned vendored source; do not pip-install a different TRL.
+torch==2.10.0
+vllm==0.19.1
+transformers==5.14.1
+accelerate==1.14.0
+datasets==5.0.1
+numpy==2.2.6
+math-verify==0.9.0
+antlr4-python3-runtime==4.13.2
+flashinfer-python==0.6.6
+flashinfer-cubin==0.6.6
+swanlab==0.9.4

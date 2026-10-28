@@ -1,0 +1,47 @@
+{
+  "status": "passed",
+  "runs": [
+    {
+      "output": "outputs/smoke-hf-01",
+      "optimizer_steps": 3,
+      "responses": 6,
+      "independent_selection_match": true,
+      "signed_rewards": true,
+      "shared_window_denominator": true,
+      "finite_losses_and_gradients": true,
+      "saved_weight_max_change": 1.5050172805786133e-06,
+      "evaluation_steps": [],
+      "train_runtime_seconds": 19.7283
+    },
+    {
+      "output": "outputs/smoke-vllm-sleep-02",
+      "optimizer_steps": 3,
+      "responses": 6,
+      "independent_selection_match": true,
+      "signed_rewards": true,
+      "shared_window_denominator": true,
+      "finite_losses_and_gradients": true,
+      "saved_weight_max_change": 1.519918441772461e-06,
+      "evaluation_steps": [
+        0,
+        2
+      ],
+      "train_runtime_seconds": 16.5897
+    },
+    {
+      "output": "outputs/smoke-vllm-batch32-02",
+      "optimizer_steps": 2,
+      "responses": 64,
+      "independent_selection_match": true,
+      "signed_rewards": true,
+      "shared_window_denominator": true,
+      "finite_losses_and_gradients": true,
+      "saved_weight_max_change": 1.0132789611816406e-06,
+      "evaluation_steps": [
+        0,
+        2
+      ],
+      "train_runtime_seconds": 41.805
+    }
+  ]
+}
